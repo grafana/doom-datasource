@@ -83,6 +83,8 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
       const imgData = ctx.getImageData(0, 0, WIDTH_PX, HEIGHT_PX).data
 
+      let valuesLen = 0;
+
       for (let x = 0; x < WIDTH_PX; x++) {
         let tLen = 1;
         const color2H: number[][] = Array(256);
@@ -98,6 +100,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           }
         }
         columns.push({ tLen, color2H })
+        valuesLen += tLen;
       }
 
       const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_, ti) => start + i * renderContext.rangeStep + ti))
@@ -108,7 +111,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
       Object.keys(colorsUsed).forEach((colorIndex) => {
         const cIndex = Number(colorIndex)
-        const values: number[] = []
+        const values: number[] = Array(valuesLen)
         let i = 0;
         for (let {tLen, color2H} of columns) {
           if (color2H[cIndex]) {
@@ -177,21 +180,24 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           twindow: diff,
           rangeStep,
         }
-        this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/title.png').then(ctx => {
-          if (ctx) {
-            //this.renderCanvas(ctx)
-            
+        
+        Promise.all([
+          this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/title.png'),
+          this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/screen1.png')
+        ]).then(([ctx1, ctx2]) => {
+          if (ctx1 && ctx2) {
             let flip = false;
-            this.intervalId = setInterval(() => {
+            const step = () => {
               flip = !flip;
-              this.renderCanvas(ctx, flip)
-            }, 1000 /25)
+              this.renderCanvas(flip ? ctx1 : ctx2)
+              setImmediate(step);
+            }
+            step();
           }
         })
   
         return () => {
           this.renderContext = null;
-          clearInterval(this.intervalId);
         };
       });
     });
