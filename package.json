@@ -1,0 +1,31 @@
+{
+  "name": "grafana-doom-datasource",
+  "version": "1.0.0",
+  "description": "Play Doom via Grafana dashboard, because why not",
+  "scripts": {
+    "build": "grafana-toolkit plugin:build",
+    "test": "grafana-toolkit plugin:test",
+    "dev": "grafana-toolkit plugin:dev",
+    "watch": "grafana-toolkit plugin:dev --watch",
+    "sign": "grafana-toolkit plugin:sign",
+    "start": "yarn watch",
+    "gen-palette": "node scripts/gen_palette.js"
+  },
+  "author": "cloud frontend squad",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@grafana/data": "8.4.2",
+    "@grafana/toolkit": "8.4.2",
+    "@grafana/ui": "8.4.2",
+    "@testing-library/jest-dom": "5.4.0",
+    "@testing-library/react": "^10.0.2",
+    "@types/lodash": "latest"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "dependencies": {
+    "image-js": "^0.33.1",
+    "rxjs": "7.5.1"
+  }
+}
