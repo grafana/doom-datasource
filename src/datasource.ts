@@ -23,11 +23,8 @@ const RGBA_VALUE_ERROR_MARGIN = 3;
 const WIDTH_PX = 320;
 const HEIGHT_PX = 200;
 
-
-type RGB = [number, number, number];
-
-function rgbaKey(rgba: RGB): number {
-  return rgba[0] * 1000 * 2 + rgba[1] * 1000 + rgba[2]
+function rgbaKey(r: number, g: number, b: number): number {
+  return r * 1000 * 2 + g * 1000 + b
 }
 
 interface RenderContext {
@@ -50,21 +47,22 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     super(instanceSettings);
   }
   
-  getColorIndex(rgb: RGB) {
-    const key = rgbaKey(rgb);
-    if (this.colorCache[key]) {
+  getColorIndex(r: number, g: number, b: number) {
+    const key = rgbaKey(r, g, b);
+    if (this.colorCache[key] !== undefined) {
       return this.colorCache[key];
     }
 
-    for (let i =0; i < palette.length; i++) {
-      if ((Math.abs(palette[i][0] - rgb[0]) <= RGBA_VALUE_ERROR_MARGIN) &&
-          (Math.abs(palette[i][1] - rgb[1]) <= RGBA_VALUE_ERROR_MARGIN) &&
-          (Math.abs(palette[i][2] - rgb[2]) <= RGBA_VALUE_ERROR_MARGIN)
+    for (let i = 0; i < palette.length; i++) {
+      if ((Math.abs(palette[i][0] - r) <= RGBA_VALUE_ERROR_MARGIN) &&
+          (Math.abs(palette[i][1] - g) <= RGBA_VALUE_ERROR_MARGIN) &&
+          (Math.abs(palette[i][2] - b) <= RGBA_VALUE_ERROR_MARGIN)
           ){ 
             this.colorCache[key] = i;
             return i;
           }
     }
+    this.colorCache[key] = 0
     return 0;
   }
 
@@ -73,11 +71,6 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       const renderContext = this.renderContext;
       const now = dateTime().valueOf()
       const start = now - this.renderContext.twindow;
-
-      const columns: Array<{
-        tLen: number,
-        color2H: number[][]
-      }> = []
 
       const colorsUsed: Record<number, boolean> = {}
 
@@ -89,12 +82,16 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       const widthPx = renderContext.query.halfResolution ? WIDTH_PX / 2: WIDTH_PX;
       const offsetMultiplier = renderContext.query.halfResolution ? 2 : 1;
 
+      const columns: Array<{
+        tLen: number,
+        color2H: number[][]
+      }> = Array(widthPx)
       for (let x = 0; x < widthPx; x++) {
         let tLen = 1;
         const color2H: number[][] = Array(256);
         for (let y = 0; y < heightPx; y++) {
           const offst = ((vflip ? y : (HEIGHT_PX - y * offsetMultiplier -1)) * WIDTH_PX + x * offsetMultiplier) * 4 ;
-          const colorIdx = this.getColorIndex([imgData[offst], imgData[offst + 1], imgData[offst + 2]])
+          const colorIdx = this.getColorIndex(imgData[offst], imgData[offst + 1], imgData[offst + 2])
           colorsUsed[colorIdx] = true
           if (!color2H[colorIdx]) {
             color2H[colorIdx] = [y]
@@ -103,30 +100,28 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
             tLen = Math.max(tLen, color2H[colorIdx].length)
           }
         }
-        columns.push({ tLen, color2H })
+        columns[x] = { tLen, color2H }
         valuesLen += tLen;
       }
 
-      const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_, ti) => start + i * renderContext.rangeStep * offsetMultiplier))
-
+      const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_) => start + i * renderContext.rangeStep * offsetMultiplier))
       const fields: any = [
         { name: 'Time', type: FieldType.time, values: timeValues },
       ]
-
+      fields.length = 257;
       for (let colorIndex = 0; colorIndex < 256; colorIndex++) {
-        const cIndex = Number(colorIndex)
         const values: number[] = Array(valuesLen)
         let i = 0;
         for (let {tLen, color2H} of columns) {
-          if (color2H[cIndex]) {
-            color2H[cIndex].forEach((c, ii) => {
+          if (color2H[colorIndex]) {
+            color2H[colorIndex].forEach((c, ii) => {
               values[i + ii] = c
             })
           }
           i+= tLen;
         }
 
-        fields.push({ name: 'Value', type: FieldType.number, values, labels: { color: String(colorIndex) }})
+        fields[colorIndex + 1] = ({ name: 'Value', type: FieldType.number, values, labels: { color: String(colorIndex) }})
       }
 
       const frame = toDataFrame({
@@ -182,8 +177,6 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           twindow: diff,
           rangeStep,
         }
-
-        let renders = 0;
         
         Promise.all([
           this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/title.png'),
@@ -192,12 +185,11 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           if (ctx1 && ctx2) {
             let flip = false;
             const step = () => {
-              if (this.renderContext && renders < 1000) {
+              if (this.renderContext) {
                 console.log('render doom')
                 flip = !flip;
                 this.renderCanvas(flip ? ctx1 : ctx2)
                 window.requestAnimationFrame(step);
-                renders++;
               }
             }
             window.requestAnimationFrame(step)
