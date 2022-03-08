@@ -85,11 +85,15 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
       let valuesLen = 0;
 
-      for (let x = 0; x < WIDTH_PX; x++) {
+      const heightPx = renderContext.query.halfResolution ? HEIGHT_PX / 2 : HEIGHT_PX;
+      const widthPx = renderContext.query.halfResolution ? WIDTH_PX / 2: WIDTH_PX;
+      const offsetMultiplier = renderContext.query.halfResolution ? 2 : 1;
+
+      for (let x = 0; x < widthPx; x++) {
         let tLen = 1;
         const color2H: number[][] = Array(256);
-        for (let y = 0; y < HEIGHT_PX; y++) {
-          const offst = ((vflip ? y : (HEIGHT_PX - y -1)) * WIDTH_PX + x) * 4;
+        for (let y = 0; y < heightPx; y++) {
+          const offst = ((vflip ? y : (HEIGHT_PX - y * offsetMultiplier -1)) * WIDTH_PX + x * offsetMultiplier) * 4 ;
           const colorIdx = this.getColorIndex([imgData[offst], imgData[offst + 1], imgData[offst + 2]])
           colorsUsed[colorIdx] = true
           if (!color2H[colorIdx]) {
@@ -103,13 +107,13 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         valuesLen += tLen;
       }
 
-      const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_, ti) => start + i * renderContext.rangeStep + ti))
+      const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_, ti) => start + i * renderContext.rangeStep * offsetMultiplier))
 
       const fields: any = [
         { name: 'Time', type: FieldType.time, values: timeValues },
       ]
 
-      Object.keys(colorsUsed).forEach((colorIndex) => {
+      for (let colorIndex = 0; colorIndex < 256; colorIndex++) {
         const cIndex = Number(colorIndex)
         const values: number[] = Array(valuesLen)
         let i = 0;
@@ -123,7 +127,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         }
 
         fields.push({ name: 'Value', type: FieldType.number, values, labels: { color: String(colorIndex) }})
-      })
+      }
 
       const frame = toDataFrame({
         name: 'screen',
@@ -161,15 +165,13 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     })
   }
 
-  
-
   query(options: DataQueryRequest<MyQuery>): Observable<DataQueryResponse> {
     const streams = options.targets.map(target => {
       const query = defaults(target, defaultQuery);
 
       const from = options.range.from.valueOf();
       const to = options.range.to.valueOf();
-      const diff = to- from;
+      const diff = to - from;
       const rangeStep = (to - from) / WIDTH_PX;
 
       return new Observable<DataQueryResponse>(subscriber => {
@@ -180,6 +182,8 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           twindow: diff,
           rangeStep,
         }
+
+        let renders = 0;
         
         Promise.all([
           this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/title.png'),
@@ -188,11 +192,15 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           if (ctx1 && ctx2) {
             let flip = false;
             const step = () => {
-              flip = !flip;
-              this.renderCanvas(flip ? ctx1 : ctx2)
-              setImmediate(step);
+              if (this.renderContext && renders < 1000) {
+                console.log('render doom')
+                flip = !flip;
+                this.renderCanvas(flip ? ctx1 : ctx2)
+                window.requestAnimationFrame(step);
+                renders++;
+              }
             }
-            step();
+            window.requestAnimationFrame(step)
           }
         })
   
