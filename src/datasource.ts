@@ -16,12 +16,13 @@ import { palette } from './palette';
 import { Observable, merge, Subscriber } from 'rxjs';
 
 import { MyQuery, MyDataSourceOptions, defaultQuery } from './types';
+import { createModule } from 'doom-module';
 
 //const FPS = 35;
 const RGBA_VALUE_ERROR_MARGIN = 3;
 
 const WIDTH_PX = 320;
-const HEIGHT_PX = 200;
+const HEIGHT_PX = 240;
 
 function rgbaKey(r: number, g: number, b: number): number {
   return r * 1000 * 2 + g * 1000 + b
@@ -42,6 +43,8 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   colorCache: Record<number, number> = {}
 
   intervalId: any
+
+  pixelsCurrent = new Uint8Array(1600 * 1200 * 4)
 
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
     super(instanceSettings);
@@ -66,7 +69,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     return 0;
   }
 
-  renderCanvas(ctx: CanvasRenderingContext2D, vflip = false) {
+  renderImgData(imgData: Uint8Array | Uint8ClampedArray, vflip = false, scale = 1) {
     if (this.renderContext) {
       const renderContext = this.renderContext;
       const now = dateTime().valueOf()
@@ -74,13 +77,11 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
       const colorsUsed: Record<number, boolean> = {}
 
-      const imgData = ctx.getImageData(0, 0, WIDTH_PX, HEIGHT_PX).data
-
       let valuesLen = 0;
 
       const heightPx = renderContext.query.halfResolution ? HEIGHT_PX / 2 : HEIGHT_PX;
       const widthPx = renderContext.query.halfResolution ? WIDTH_PX / 2: WIDTH_PX;
-      const offsetMultiplier = renderContext.query.halfResolution ? 2 : 1;
+      const offsetMultiplier = renderContext.query.halfResolution ? 2 * scale : scale;
 
       const columns: Array<{
         tLen: number,
@@ -90,7 +91,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         let tLen = 1;
         const color2H: number[][] = Array(256);
         for (let y = 0; y < heightPx; y++) {
-          const offst = ((vflip ? y : (HEIGHT_PX - y * offsetMultiplier -1)) * WIDTH_PX + x * offsetMultiplier) * 4 ;
+          const offst = ((vflip ? y * offsetMultiplier : ((HEIGHT_PX - 1) * scale - y * offsetMultiplier - 1 )) * (WIDTH_PX * scale) + x * offsetMultiplier) * 4 ;
           const colorIdx = this.getColorIndex(imgData[offst], imgData[offst + 1], imgData[offst + 2])
           colorsUsed[colorIdx] = true
           if (!color2H[colorIdx]) {
@@ -104,7 +105,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         valuesLen += tLen;
       }
 
-      const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_) => start + i * renderContext.rangeStep * offsetMultiplier))
+      const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_) => start + i * renderContext.rangeStep * (renderContext.query.halfResolution ? 2 : 1)))
       const fields: any = [
         { name: 'Time', type: FieldType.time, values: timeValues },
       ]
@@ -136,6 +137,15 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         state: LoadingState.Streaming,
       });
     }
+  }
+
+  renderWebGLContext(ctx: WebGLRenderingContext, scale=5) {
+    ctx.readPixels(0, 0, WIDTH_PX * scale, HEIGHT_PX * scale, ctx.RGBA, ctx.UNSIGNED_BYTE, this.pixelsCurrent);
+    this.renderImgData(this.pixelsCurrent, true, 5)
+  }
+
+  renderCanvas2DContext(ctx: CanvasRenderingContext2D, vflip = false) {
+    this.renderImgData(ctx.getImageData(0, 0, WIDTH_PX, HEIGHT_PX).data, vflip)
   }
 
 
@@ -177,8 +187,21 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           twindow: diff,
           rangeStep,
         }
+        const module = createModule()
+        module.startDoom();
+        const gl = (module.canvas as HTMLCanvasElement).getContext('webgl', { preserveDrawingBuffer: true });
+        if (gl) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          const step = () => {
+            if (this.renderContext) {
+              this.renderWebGLContext(gl)
+              window.requestAnimationFrame(step)
+            }
+          }
+          window.requestAnimationFrame(step)
+        }
         
-        Promise.all([
+        /*Promise.all([
           this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/title.png'),
           this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/screen1.png')
         ]).then(([ctx1, ctx2]) => {
@@ -194,10 +217,14 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
             }
             window.requestAnimationFrame(step)
           }
-        })
+        })*/
   
         return () => {
           this.renderContext = null;
+          try {
+            module.exit(0)
+          } catch (e) {}
+          module.canvas.remove()
         };
       });
     });
