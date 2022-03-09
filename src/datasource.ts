@@ -191,14 +191,10 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         module.startDoom();
         const gl = (module.canvas as HTMLCanvasElement).getContext('webgl', { preserveDrawingBuffer: true });
         if (gl) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-          const step = () => {
-            if (this.renderContext) {
-              this.renderWebGLContext(gl)
-              window.requestAnimationFrame(step)
-            }
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          module.onUpdate = () => {
+            this.renderWebGLContext(gl)
           }
-          window.requestAnimationFrame(step)
         }
         
         /*Promise.all([

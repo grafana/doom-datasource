@@ -4350,6 +4350,9 @@ export function init(Module) {
      Browser.mainLoop.tickStartTime = _emscripten_get_now();
     }
     Browser.mainLoop.runIter(browserIterationFunc);
+    if (Module.onUpdate) {
+      Module.onUpdate()
+    }
     checkStackCookie();
     if (!checkIsRunning()) return;
     if (typeof SDL == "object" && SDL.audio && SDL.audio.queueNewAudioData) SDL.audio.queueNewAudioData();
