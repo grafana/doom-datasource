@@ -6288,7 +6288,6 @@ function _JSEvents_resizeCanvasForFullscreen(target, strategy) {
   target.style.imageRendering = "pixelated";
  }
  var dpiScale = strategy.canvasResolutionScaleMode == 2 ? devicePixelRatio : 1;
- console.log('DPI scale', dpiScale)
  if (strategy.canvasResolutionScaleMode != 0) {
   var newWidth = cssWidth * dpiScale | 0;
   var newHeight = cssHeight * dpiScale | 0;
@@ -7911,14 +7910,7 @@ function doRequestFullscreen(target, strategy) {
 }
 
 function _emscripten_request_fullscreen(target, deferUntilInEventHandler) {
- var strategy = {
-  scaleMode: 0,
-  canvasResolutionScaleMode: 0,
-  filteringMode: 0,
-  deferUntilInEventHandler: deferUntilInEventHandler,
-  canvasResizedCallbackTargetThread: 2
- };
- return doRequestFullscreen(target, strategy);
+  return;
 }
 
 function _emscripten_request_fullscreen_strategy(target, deferUntilInEventHandler, fullscreenStrategy) {
@@ -7934,21 +7926,7 @@ function _emscripten_request_fullscreen_strategy(target, deferUntilInEventHandle
 }
 
 function _emscripten_request_pointerlock(target, deferUntilInEventHandler) {
- target = findEventTarget(target);
- if (!target) return -4;
- if (!target.requestPointerLock && !target.msRequestPointerLock) {
-  return -1;
- }
- var canPerformRequests = JSEvents.canPerformEventHandlerRequests();
- if (!canPerformRequests) {
-  if (deferUntilInEventHandler) {
-   JSEvents.deferCall(requestPointerLock, 2, [ target ]);
-   return 1;
-  } else {
-   return -2;
-  }
- }
- return requestPointerLock(target);
+  return;
 }
 
 function _emscripten_get_heap_max() {
