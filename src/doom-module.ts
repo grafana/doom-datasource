@@ -6,7 +6,7 @@ var commonArgs = [
   'doom1.wad',
   '-window',
   '-nogui',
-  '-nomusic',
+  '-nosound',
   '-config',
   'default.cfg',
   '-servername',
