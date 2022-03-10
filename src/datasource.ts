@@ -22,7 +22,7 @@ import { createModule } from 'doom-module';
 const RGBA_VALUE_ERROR_MARGIN = 3;
 
 const WIDTH_PX = 320;
-const HEIGHT_PX = 240;
+const HEIGHT_PX = 200;
 
 function rgbaKey(r: number, g: number, b: number): number {
   return r * 1000 * 2 + g * 1000 + b
@@ -44,10 +44,26 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
   intervalId: any
 
-  pixelsCurrent = new Uint8Array(1600 * 1200 * 4)
+  pixelsCurrent: Uint8Array | null = null; 
 
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
     super(instanceSettings);
+    (window as any).doStuff = (health: unknown, armor: unknown, armorType: unknown, ammo: unknown, ammoMax: unknown, weapon: unknown) => {
+      console.log(
+        'health: ',
+        health,
+        'armor: ',
+        armor,
+        'armorType: ',
+        armorType,
+        'ammo: ',
+        ammo,
+        'ammoMax: ',
+        ammoMax,
+        'weapon: ',
+        weapon
+      );
+    };
   }
   
   getColorIndex(r: number, g: number, b: number) {
@@ -139,9 +155,12 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     }
   }
 
-  renderWebGLContext(ctx: WebGLRenderingContext, scale=5) {
+  renderWebGLContext(ctx: WebGLRenderingContext, scale=2) {
+    if (!this.pixelsCurrent ) {
+      this.pixelsCurrent = new Uint8Array(WIDTH_PX* scale * HEIGHT_PX * scale * 4 )
+    }
     ctx.readPixels(0, 0, WIDTH_PX * scale, HEIGHT_PX * scale, ctx.RGBA, ctx.UNSIGNED_BYTE, this.pixelsCurrent);
-    this.renderImgData(this.pixelsCurrent, true, 5)
+    this.renderImgData(this.pixelsCurrent, true, scale)
   }
 
   renderCanvas2DContext(ctx: CanvasRenderingContext2D, vflip = false) {
@@ -196,24 +215,6 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
             this.renderWebGLContext(gl)
           }
         }
-        
-        /*Promise.all([
-          this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/title.png'),
-          this.getImg2DContext('/public/plugins/grafana-doom-datasource/img/screen1.png')
-        ]).then(([ctx1, ctx2]) => {
-          if (ctx1 && ctx2) {
-            let flip = false;
-            const step = () => {
-              if (this.renderContext) {
-                console.log('render doom')
-                flip = !flip;
-                this.renderCanvas(flip ? ctx1 : ctx2)
-                window.requestAnimationFrame(step);
-              }
-            }
-            window.requestAnimationFrame(step)
-          }
-        })*/
   
         return () => {
           this.renderContext = null;
