@@ -29,7 +29,7 @@ executors:
       - image: cimg/base:2020.01
   grafana-plugin:
     docker:
-      - image: srclosson/grafana-plugin-ci-alpine:latest
+      - image: grafana/grafana-plugin-ci
 
 jobs:
   install_dependencies:
@@ -39,9 +39,6 @@ jobs:
     steps:
       - checkout:
           path: ~/doom-datasource
-      - node/install:
-          install-yarn: true
-          node-version: '16.13'
       - run:
           name: Install dependencies
           command: |
