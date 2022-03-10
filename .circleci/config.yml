@@ -29,7 +29,7 @@ executors:
       - image: cimg/base:2020.01
   grafana-plugin:
     docker:
-      - image: grafana/grafana-plugin-ci
+      - image: grafana/grafana-plugin-ci:1.3.0-alpine
 
 jobs:
   install_dependencies:
