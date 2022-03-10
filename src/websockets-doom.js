@@ -6288,6 +6288,7 @@ function _JSEvents_resizeCanvasForFullscreen(target, strategy) {
   target.style.imageRendering = "pixelated";
  }
  var dpiScale = strategy.canvasResolutionScaleMode == 2 ? devicePixelRatio : 1;
+ console.log('DPI scale', dpiScale)
  if (strategy.canvasResolutionScaleMode != 0) {
   var newWidth = cssWidth * dpiScale | 0;
   var newHeight = cssHeight * dpiScale | 0;
@@ -6365,7 +6366,7 @@ function _emscripten_force_exit(status) {
 }
 
 function _emscripten_get_device_pixel_ratio() {
- return typeof devicePixelRatio == "number" && devicePixelRatio || 1;
+ return 1;
 }
 
 function _emscripten_get_element_css_size(target, width, height) {
@@ -8186,25 +8187,6 @@ function fillMouseEventData(eventStruct, e, target) {
 }
 
 function registerMouseEventCallback(target, userData, useCapture, callbackfunc, eventTypeId, eventTypeString, targetThread) {
-  return; //# mouse is broken
- if (!JSEvents.mouseEvent) JSEvents.mouseEvent = _malloc(72);
- target = findEventTarget(target);
- var mouseEventHandlerFunc = function(ev) {
-  var e = ev || event;
-  fillMouseEventData(JSEvents.mouseEvent, e, target);
-  if (function(a1, a2, a3) {
-   return dynCall_iiii.apply(null, [ callbackfunc, a1, a2, a3 ]);
-  }(eventTypeId, JSEvents.mouseEvent, userData)) e.preventDefault();
- };
- var eventHandler = {
-  target: target,
-  allowsDeferredCalls: eventTypeString != "mousemove" && eventTypeString != "mouseenter" && eventTypeString != "mouseleave",
-  eventTypeString: eventTypeString,
-  callbackfunc: callbackfunc,
-  handlerFunc: mouseEventHandlerFunc,
-  useCapture: useCapture
- };
- JSEvents.registerOrRemoveHandler(eventHandler);
 }
 
 function _emscripten_set_mousedown_callback_on_thread(target, userData, useCapture, callbackfunc, targetThread) {

@@ -1,6 +1,7 @@
 import defaults from 'lodash/defaults';
 
 import {
+  CircularDataFrame,
   DataQueryRequest,
   DataQueryResponse,
   DataSourceApi,
@@ -15,7 +16,7 @@ import { palette } from './palette';
 
 import { Observable, merge, Subscriber } from 'rxjs';
 
-import { MyQuery, MyDataSourceOptions, defaultQuery } from './types';
+import { MyQuery, MyDataSourceOptions, defaultQuery, QueryType, Metric, queryTypeToMetric } from './types';
 import { createModule } from 'doom-module';
 
 //const FPS = 35;
@@ -36,6 +37,8 @@ interface RenderContext {
   rangeStep: number
 }
 
+type Metrics = Record<Metric, number>
+type MetricsSubscriberFn = (metrics: Metrics) => void
 export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
   renderContext: RenderContext | null = null;
@@ -44,26 +47,34 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
   intervalId: any
 
-  pixelsCurrent: Uint8Array | null = null; 
+  pixelsCurrent: Uint8Array | null = null;
+  
+  metricsSubscribers: Array<MetricsSubscriberFn>
+
 
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
     super(instanceSettings);
-    (window as any).doStuff = (health: unknown, armor: unknown, armorType: unknown, ammo: unknown, ammoMax: unknown, weapon: unknown) => {
-      console.log(
-        'health: ',
-        health,
-        'armor: ',
-        armor,
-        'armorType: ',
-        armorType,
-        'ammo: ',
-        ammo,
-        'ammoMax: ',
-        ammoMax,
-        'weapon: ',
-        weapon
-      );
+    this.metricsSubscribers = [];
+
+    (window as any).doStuff = (health: number, armor: number, armorType: number, ammo: number, ammoMax: number, weapon: number) => {
+      const metrics: Metrics = {
+        [Metric.health]: health,
+        [Metric.ammo]: ammo,
+        [Metric.ammoMax]: ammoMax,
+        [Metric.armor]: armor,
+        [Metric.armorType]: armorType,
+        [Metric.weapon]: weapon
+      }
+      this.metricsSubscribers.forEach(fn => fn(metrics))
     };
+  }
+
+  subscribeToMetrics(fn: MetricsSubscriberFn) {
+    this.metricsSubscribers.push(fn)
+  }
+
+  unsubscribeToMetrics(fn: MetricsSubscriberFn) {
+    this.metricsSubscribers = this.metricsSubscribers.filter(f => f !== fn)
   }
   
   getColorIndex(r: number, g: number, b: number) {
@@ -155,7 +166,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     }
   }
 
-  renderWebGLContext(ctx: WebGLRenderingContext, scale=2) {
+  renderWebGLContext(ctx: WebGLRenderingContext, scale=1) {
     if (!this.pixelsCurrent ) {
       this.pixelsCurrent = new Uint8Array(WIDTH_PX* scale * HEIGHT_PX * scale * 4 )
     }
@@ -191,42 +202,80 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
   query(options: DataQueryRequest<MyQuery>): Observable<DataQueryResponse> {
     const streams = options.targets.map(target => {
-      const query = defaults(target, defaultQuery);
-
-      const from = options.range.from.valueOf();
-      const to = options.range.to.valueOf();
-      const diff = to - from;
-      const rangeStep = (to - from) / WIDTH_PX;
-
-      return new Observable<DataQueryResponse>(subscriber => {
-        this.renderContext = {
-          query: query,
-          options: options,
-          subscriber: subscriber,
-          twindow: diff,
-          rangeStep,
-        }
-        const module = createModule()
-        module.startDoom();
-        const gl = (module.canvas as HTMLCanvasElement).getContext('webgl', { preserveDrawingBuffer: true });
-        if (gl) {
-          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-          module.onUpdate = () => {
-            this.renderWebGLContext(gl)
-          }
-        }
-  
-        return () => {
-          this.renderContext = null;
-          try {
-            module.exit(0)
-          } catch (e) {}
-          module.canvas.remove()
-        };
-      });
+      if (target.queryType === QueryType.Screen) {
+        return this.screenQuery(target, options)
+      }
+      const metric: Metric = (queryTypeToMetric as any)[target.queryType]
+      if (metric) {
+        return this.metricQuery(metric, target, options)
+      }
+      return new Observable<DataQueryResponse>(() => {})
     });
   
     return merge(...streams);
+  }
+
+  metricQuery(metric: Metric, target: MyQuery, options: DataQueryRequest<MyQuery>) {
+    return new Observable<DataQueryResponse>(subscriber => {
+      const frame = new CircularDataFrame({
+        append: 'tail',
+        capacity: 1000,
+      });
+      
+      frame.refId = target.refId;
+      frame.addField({ name: 'time', type: FieldType.time });
+      frame.addField({ name: 'value', type: FieldType.number });
+
+      const subfn: MetricsSubscriberFn = metrics => {
+        frame.add({ time: Date.now(), value: metrics[metric] });
+
+        subscriber.next({
+          data: [frame],
+          key: target.refId,
+          state: LoadingState.Streaming,
+        });
+      }
+      this.subscribeToMetrics(subfn)
+      return () => {
+        this.unsubscribeToMetrics(subfn)
+      }
+    })
+  }
+
+  screenQuery(target: MyQuery, options: DataQueryRequest<MyQuery>) {
+    const query = defaults(target, defaultQuery);
+
+    const from = options.range.from.valueOf();
+    const to = options.range.to.valueOf();
+    const diff = to - from;
+    const rangeStep = (to - from) / WIDTH_PX;
+
+    return new Observable<DataQueryResponse>(subscriber => {
+      this.renderContext = {
+        query: query,
+        options: options,
+        subscriber: subscriber,
+        twindow: diff,
+        rangeStep,
+      }
+      const module = createModule()
+      module.startDoom();
+      const gl = (module.canvas as HTMLCanvasElement).getContext('webgl', { preserveDrawingBuffer: true });
+      if (gl) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        module.onUpdate = () => {
+          this.renderWebGLContext(gl)
+        }
+      }
+
+      return () => {
+        this.renderContext = null;
+        try {
+          module.exit(0)
+        } catch (e) {}
+        module.canvas.remove()
+      };
+    });
   }
 
   async testDatasource() {
