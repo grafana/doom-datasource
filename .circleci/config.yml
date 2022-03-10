@@ -74,7 +74,7 @@ jobs:
             cp version home/ci/
       - run:
           name: Build and test frontend
-          command: yarn build
+          command: yarn build --skipLint
       - run:
           name: Sign plugin
           command: |
