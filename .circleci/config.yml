@@ -1,0 +1,111 @@
+version: 2.1
+
+orbs:
+  gcp-cli: circleci/gcp-cli@1.8.4
+  node: circleci/node@4.1
+
+aliases:
+  - &filter-only-main
+    branches:
+      only: main
+
+workflows:
+  plugin_workflow:
+    jobs:
+      - install_dependencies:
+          filters: *filter-only-main
+      - build_home:
+          requires:
+            - install_dependencies
+          filters: *filter-only-main
+      - publish_plugin_to_gcloud:
+          requires:
+            - build_home
+          filters: *filter-only-main
+
+executors:
+  base:
+    docker:
+      - image: cimg/base:2020.01
+  grafana-plugin:
+    docker:
+      - image: srclosson/grafana-plugin-ci-alpine:latest
+
+jobs:
+  install_dependencies:
+    working_directory: ~/doom-datasource
+    resource_class: medium+
+    executor: grafana-plugin
+    steps:
+      - checkout:
+          path: ~/doom-datasource
+      - run:
+          name: Install dependencies
+          command: |
+            yarn install --frozen-lockfile
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+  build_home:
+    working_directory: ~/doom-datasource
+    resource_class: medium+
+    executor: grafana-plugin
+    environment:
+      PLUGIN_ID: grafana-doom-datasource
+    steps:
+      - checkout:
+          path: ~/doom-datasource
+      - attach_workspace:
+          at: ~/doom-datasource
+      - run:
+          name: Prepare CI resources
+          command: |
+            mkdir home
+            mkdir home/ci
+            mkdir home/ci/packages
+      - run:
+          name: Patch version in package.json
+          command: |
+            sh ./scripts/set-version
+      - run:
+          name: Save version for later reference
+          command: |
+            cp version home/ci/
+      - run:
+          name: Build and test frontend
+          command: yarn build
+      - run:
+          name: Sign plugin
+          command: |
+            export GRAFANA_API_KEY=${GRAFANA_COM_PLUGIN_SIGNING_KEY}
+            ./node_modules/.bin/grafana-toolkit plugin:sign
+      - run:
+          name: Re-package signed plugin
+          command: |
+            export VERSION=$(cat home/ci/version)
+            zip -r home/ci/packages/${PLUGIN_ID}-${VERSION}.zip ./dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - home/ci/packages
+            - home/ci/version
+  publish_plugin_to_gcloud:
+    working_directory: ~/doom-datasource
+    description: "Save plugin package to Google Cloud Storage"
+    executor: base
+    steps:
+      - checkout:
+          path: ~/doom-datasource
+      # This requires environment variables to be set in the CircleCI config,
+      # particularly GCLOUD_SERVICE_KEY. Compare gcp-cli documentation.
+      - gcp-cli/install
+      - gcp-cli/initialize
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Save package to bucket"
+          environment:
+            GCS_BASE: gs://alertingdev/doom
+          command: |
+            gsutil cp -r home/ci/packages/*.zip ${GCS_BASE}/dev/
