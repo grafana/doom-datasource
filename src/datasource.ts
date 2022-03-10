@@ -199,8 +199,8 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       }
     })
   }
-
-  query(options: DataQueryRequest<MyQuery>): Observable<DataQueryResponse> {
+  //@ts-ignore
+  query(options: DataQueryRequest<MyQuery>): Observable<DataQueryResponse> |  Promise<DataQueryResponse> {
     const streams = options.targets.map(target => {
       if (target.queryType === QueryType.Screen) {
         return this.screenQuery(target, options)
@@ -211,7 +211,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       }
       return new Observable<DataQueryResponse>(() => {})
     });
-  
+    //@ts-ignore
     return merge(...streams);
   }
 

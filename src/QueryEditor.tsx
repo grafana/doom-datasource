@@ -6,6 +6,7 @@ import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
 import { defaultQuery, MyDataSourceOptions, MyQuery, QueryType } from './types';
 
+//@ts-ignore
 type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
 
 const queryTypes: Array<SelectableValue<QueryType>> = [
