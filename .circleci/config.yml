@@ -39,6 +39,9 @@ jobs:
     steps:
       - checkout:
           path: ~/doom-datasource
+      - node/install:
+          install-yarn: true
+          node-version: '16.13'
       - run:
           name: Install dependencies
           command: |
