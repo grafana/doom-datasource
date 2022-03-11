@@ -34,6 +34,7 @@ interface RenderContext {
   query: MyQuery
   options: DataQueryRequest<MyQuery>
   twindow: number
+  timeOffset: number,
   rangeStep: number
 }
 
@@ -99,7 +100,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   renderImgData(imgData: Uint8Array | Uint8ClampedArray, vflip = false, scale = 1) {
     if (this.renderContext) {
       const renderContext = this.renderContext;
-      const now = dateTime().valueOf()
+      const now = dateTime().valueOf() - renderContext.timeOffset;
       const start = now - this.renderContext.twindow;
 
       const colorsUsed: Record<number, boolean> = {}
@@ -247,6 +248,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
     const from = options.range.from.valueOf();
     const to = options.range.to.valueOf();
+    const timeOffset = dateTime().valueOf() - to;
     const diff = to - from;
     const rangeStep = (to - from) / WIDTH_PX;
 
@@ -256,6 +258,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         options: options,
         subscriber: subscriber,
         twindow: diff,
+        timeOffset,
         rangeStep,
       }
       const module = createModule()
