@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "st_stuff.h": "c",
+    "ratio": "c",
+    "m_cheat.h": "c",
+    "iosfwd": "c",
+    "wi_stuff.h": "c",
+    "z_zone.h": "c"
+  }
+}
