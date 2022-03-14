@@ -26,7 +26,7 @@ const WIDTH_PX = 320;
 const HEIGHT_PX = 200;
 
 function rgbaKey(r: number, g: number, b: number): number {
-  return r * 1000 * 2 + g * 1000 + b
+  return r * 1000000 + g * 1000 + b
 }
 
 interface RenderContext {
