@@ -38,6 +38,20 @@ interface RenderContext {
   rangeStep: number
 }
 
+// sRGB color differnce with redmean smoothing
+// https://en.wikipedia.org/wiki/Color_difference#sRGB
+function colorDistance(r, g, b, c2) {
+  const deltaR = r - c2[0];
+  const deltaG = g - c2[1];
+  const deltaB = b - c2[2];
+  const redmean = (r + c2[0]) / 2;
+  return Math.sqrt(
+    (2 + (redmean/256)) * Math.pow(deltaR, 2) +
+    4 * Math.pow(deltaG, 2) +
+    (2 + ((255 - redmean)/256)) * Math.pow(deltaB, 2)
+  );
+}
+
 type Metrics = Record<Metric, number>
 type MetricsSubscriberFn = (metrics: Metrics) => void
 export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
@@ -84,17 +98,30 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       return this.colorCache[key];
     }
 
+    // Color matching. First pass for equality and save calculations
     for (let i = 0; i < palette.length; i++) {
-      if ((Math.abs(palette[i][0] - r) <= RGBA_VALUE_ERROR_MARGIN) &&
-          (Math.abs(palette[i][1] - g) <= RGBA_VALUE_ERROR_MARGIN) &&
-          (Math.abs(palette[i][2] - b) <= RGBA_VALUE_ERROR_MARGIN)
-          ){ 
-            this.colorCache[key] = i;
-            return i;
-          }
+      if (
+        r === palette[i][0] &&
+        g === palette[i][1] &&
+        b === palette[i][2]
+      ) {
+        this.colorCache[key] = i;
+        return i;
+      }
     }
-    this.colorCache[key] = 0
-    return 0;
+
+    // Color matching. Second pass with colordiff
+    let min = Infinity, di, minColor = 0;
+    for (let i = 0; i < palette.length; i++) {
+      di = colorDistance(r, g, b, palette[i]);
+      if (di < min) {
+        min = di;
+        minColor = i;
+      };
+    }
+
+    this.colorCache[key] = minColor;
+    return minColor;
   }
 
   renderImgData(imgData: Uint8Array | Uint8ClampedArray, vflip = false, scale = 1) {
