@@ -19,9 +19,6 @@ import { Observable, merge, Subscriber } from 'rxjs';
 import { MyQuery, MyDataSourceOptions, defaultQuery, QueryType, Metric, queryTypeToMetric } from './types';
 import { createModule } from 'doom-module';
 
-//const FPS = 35;
-const RGBA_VALUE_ERROR_MARGIN = 3;
-
 const WIDTH_PX = 320;
 const HEIGHT_PX = 200;
 
@@ -40,7 +37,7 @@ interface RenderContext {
 
 // sRGB color differnce with redmean smoothing
 // https://en.wikipedia.org/wiki/Color_difference#sRGB
-function colorDistance(r, g, b, c2) {
+function colorDistance(r: number, g: number, b: number, c2: number[]) {
   const deltaR = r - c2[0];
   const deltaG = g - c2[1];
   const deltaB = b - c2[2];
@@ -96,18 +93,6 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     const key = rgbaKey(r, g, b);
     if (this.colorCache[key] !== undefined) {
       return this.colorCache[key];
-    }
-
-    // Color matching. First pass for equality and save calculations
-    for (let i = 0; i < palette.length; i++) {
-      if (
-        r === palette[i][0] &&
-        g === palette[i][1] &&
-        b === palette[i][2]
-      ) {
-        this.colorCache[key] = i;
-        return i;
-      }
     }
 
     // Color matching. Second pass with colordiff

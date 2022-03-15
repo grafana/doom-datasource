@@ -83,9 +83,9 @@ export class QueryEditor extends PureComponent<Props> {
               />
             </InlineField>
           </InlineFieldRow>
-          <InlineFieldRow>
-            <InlineSwitch showLabel={true} label="Half resolution" checked={halfResolution} onChange={this.onHalfRezChange} />
-          </InlineFieldRow>
+          {query.queryType === QueryType.Screen && (<InlineFieldRow>
+            <InlineSwitch showLabel={true} value={halfResolution} label="Half resolution" checked={halfResolution} onChange={this.onHalfRezChange} />
+          </InlineFieldRow>)}
         </div>
     );
   }
