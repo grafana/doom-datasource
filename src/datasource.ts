@@ -19,9 +19,6 @@ import { Observable, merge, Subscriber } from 'rxjs';
 import { MyQuery, MyDataSourceOptions, defaultQuery, QueryType, Metric, queryTypeToMetric } from './types';
 import { createModule } from 'doom-module';
 
-//const FPS = 35;
-const RGBA_VALUE_ERROR_MARGIN = 3;
-
 const WIDTH_PX = 320;
 const HEIGHT_PX = 200;
 
@@ -36,6 +33,20 @@ interface RenderContext {
   twindow: number
   timeOffset: number,
   rangeStep: number
+}
+
+// sRGB color differnce with redmean smoothing
+// https://en.wikipedia.org/wiki/Color_difference#sRGB
+function colorDistance(r: number, g: number, b: number, c2: number[]) {
+  const deltaR = r - c2[0];
+  const deltaG = g - c2[1];
+  const deltaB = b - c2[2];
+  const redmean = (r + c2[0]) / 2;
+  return Math.sqrt(
+    (2 + (redmean/256)) * Math.pow(deltaR, 2) +
+    4 * Math.pow(deltaG, 2) +
+    (2 + ((255 - redmean)/256)) * Math.pow(deltaB, 2)
+  );
 }
 
 type Metrics = Record<Metric, number>
@@ -84,17 +95,18 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       return this.colorCache[key];
     }
 
+    // Color matching. Second pass with colordiff
+    let min = Infinity, di, minColor = 0;
     for (let i = 0; i < palette.length; i++) {
-      if ((Math.abs(palette[i][0] - r) <= RGBA_VALUE_ERROR_MARGIN) &&
-          (Math.abs(palette[i][1] - g) <= RGBA_VALUE_ERROR_MARGIN) &&
-          (Math.abs(palette[i][2] - b) <= RGBA_VALUE_ERROR_MARGIN)
-          ){ 
-            this.colorCache[key] = i;
-            return i;
-          }
+      di = colorDistance(r, g, b, palette[i]);
+      if (di < min) {
+        min = di;
+        minColor = i;
+      };
     }
-    this.colorCache[key] = 0
-    return 0;
+
+    this.colorCache[key] = minColor;
+    return minColor;
   }
 
   renderImgData(imgData: Uint8Array | Uint8ClampedArray, vflip = false, scale = 1) {
