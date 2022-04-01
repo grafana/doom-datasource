@@ -5,6 +5,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Node.js modules
 node_modules/
 
 # Runtime data
@@ -28,5 +29,7 @@ e2e-results/
 
 # Editor
 .idea
+.vscode
 
+# System
 .DS_Store

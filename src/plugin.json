@@ -8,11 +8,9 @@
     "description": "Play Doom via Grafana dashboard, because why not",
     "author": {
       "name": "cloud frontend squad",
-      "url": ""
+      "url": "https://grafana.com"
     },
-    "keywords": [
-      "doom"
-    ],
+    "keywords": ["doom"],
     "logos": {
       "small": "img/logo.png",
       "large": "img/logo.png"
@@ -20,11 +18,11 @@
     "links": [
       {
         "name": "Website",
-        "url": "https://github.com/grafana/grafana-starter-datasource"
+        "url": "https://github.com/grafana/grafana-doom-datasource"
       },
       {
         "name": "License",
-        "url": "https://github.com/grafana/grafana-starter-datasource/blob/master/LICENSE"
+        "url": "https://github.com/grafana/grafana-doom-datasource/blob/main/LICENSE"
       }
     ],
     "screenshots": [],

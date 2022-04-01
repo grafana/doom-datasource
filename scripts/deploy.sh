@@ -15,7 +15,8 @@ deploy-to-hg-instance <cmd> <instance>
   Manage custom install of grafana-alerting-ui-app in Hosted Grafana
   instances via grafana.com instance config's custom_command.
 Environment:
-  GCOM_TOKEN or ./gcom.token:   A staff grafana.com API token
+  GCOM_TOKEN:                   A staff grafana.com API token
+	GCS_BASE:                     Path to where the zip file is located
   VERSION or ./version:         Plugin version (e.g. dev-master-cd22922)
 Commands:
   install         Install Alerting UI to the given instances
@@ -36,11 +37,7 @@ fail() {
 
 ensure_token() {
 	if [ -z "${GCOM_TOKEN:-}" ]; then
-		if [ -f gcom.token ]; then
-			GCOM_TOKEN=$(cat gcom.token)
-		else
-			fail "need an API key in \$GCOM_TOKEN or ./gcom.token"
-		fi
+		fail "need an API key in \$GCOM_TOKEN"
 	fi
 }
 
@@ -51,6 +48,12 @@ ensure_version() {
 		else
 			fail "need a plugin version in \$VERSION or ./version"
 		fi
+	fi
+}
+
+ensure_gcs_base() {
+	if [ -z "${GCS_BASE:-}" ]; then
+		fail "need a path to plugin in \$GCS_BASE"
 	fi
 }
 
@@ -105,13 +108,13 @@ instance_status() {
 }
 
 custom_commands() {
-	base_url=https://storage.googleapis.com/alertingdev/doom/dev
+	base_url="https://storage.googleapis.com/${GCS_BASE}"
 	plugin_id=grafana-doom-datasource
 
 	cat <<-EOF
 		# grafana-doom-datasource managed plugin install
 		# VERSION=${VERSION}
-		grafana-cli --pluginUrl=${base_url}/${plugin_id}-${VERSION}.zip plugins install ${plugin_id}
+		grafana-cli --pluginUrl=${base_url}${plugin_id}-${VERSION}.zip plugins install ${plugin_id}
 		mkdir -p /usr/share/grafana/conf/provisioning/plugins
 		cat >/usr/share/grafana/conf/provisioning/plugins/doom-datasource.yaml <<YAMLEOF
 		apiVersion: 1
@@ -142,6 +145,7 @@ fi
 
 ensure_tools
 ensure_token
+ensure_gcs_base
 
 instance="${2:-}"
 if [ -z "$instance" ]; then

@@ -92,7 +92,7 @@ jobs:
             - home/ci/version
   publish_plugin_to_gcloud:
     working_directory: ~/doom-datasource
-    description: "Save plugin package to Google Cloud Storage"
+    description: 'Save plugin package to Google Cloud Storage'
     executor: base
     steps:
       - checkout:
@@ -104,8 +104,6 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: "Save package to bucket"
-          environment:
-            GCS_BASE: gs://alertingdev/doom
+          name: 'Save package to bucket'
           command: |
-            gsutil cp -r home/ci/packages/*.zip ${GCS_BASE}/dev/
+            gsutil cp -r home/ci/packages/*.zip gs://${GCS_BASE}

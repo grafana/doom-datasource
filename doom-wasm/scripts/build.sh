@@ -6,4 +6,4 @@ emmake make clean
 emconfigure autoreconf -fiv
 ac_cv_exeext=".html" emconfigure ./configure --host=none-none-none
 
-emmake make -s ASSERTIONS=1
+emmake make
