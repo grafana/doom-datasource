@@ -18,10 +18,10 @@ workflows:
           requires:
             - install_dependencies
           filters: *filter-only-main
-      - publish_plugin_to_gcloud:
-          requires:
-            - build_home
-          filters: *filter-only-main
+      # - publish_plugin_to_gcloud:
+      #     requires:
+      #       - build_home
+      #     filters: *filter-only-main
 
 executors:
   base:

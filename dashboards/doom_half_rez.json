@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "datasource",
-          "uid": "grafana"
-        },
+        "datasource": "-- Grafana --",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -21,17 +18,17 @@
       }
     ]
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 165,
+  "id": 1438,
   "links": [],
   "liveNow": false,
   "panels": [
     {
       "datasource": {
         "type": "grafana-doom-datasource",
-        "uid": "ae75DpL7k"
+        "uid": "datasource-id"
       },
       "fieldConfig": {
         "defaults": {
@@ -52,7 +49,7 @@
             },
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 2,
+            "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -3927,8 +3924,8 @@
         ]
       },
       "gridPos": {
-        "h": 10,
-        "w": 7,
+        "h": 14,
+        "w": 12,
         "x": 0,
         "y": 0
       },
@@ -3946,10 +3943,9 @@
       },
       "targets": [
         {
-          "constant": 6.5,
           "datasource": {
             "type": "grafana-doom-datasource",
-            "uid": "ae75DpL7k"
+            "uid": "datasource-id"
           },
           "halfResolution": true,
           "queryType": "screen",
@@ -3960,30 +3956,25 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
-      "description": "",
       "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 7,
+        "h": 9,
+        "w": 6,
+        "x": 12,
         "y": 0
       },
-      "id": 8,
+      "id": 4,
       "options": {
-        "content": "# Controls\n\nmove: arrow keys  \nfire: space  \nuse: z  \nstrafe: a, d  \nselect (menu): enter  ",
+        "content": "# Controls\n\nmove: arrow keys  \nfire: space  \nuse: z  \nstrafe: a, d  \nselect (menu): enter  \n\nIf mouse disappears, press ESC.",
         "mode": "markdown"
       },
-      "pluginVersion": "8.5.0-pre",
-      "title": "Panel Title",
+      "pluginVersion": "8.4.5",
+      "title": "Instructions",
       "type": "text"
     },
     {
       "datasource": {
         "type": "grafana-doom-datasource",
-        "uid": "ae75DpL7k"
+        "uid": "datasource-id"
       },
       "fieldConfig": {
         "defaults": {
@@ -4010,31 +4001,29 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 2,
+        "w": 3,
         "x": 0,
-        "y": 10
+        "y": 14
       },
-      "id": 4,
+      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.0-pre",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
             "type": "grafana-doom-datasource",
-            "uid": "ae75DpL7k"
+            "uid": "datasource-id"
           },
           "halfResolution": false,
           "queryType": "health",
@@ -4047,7 +4036,7 @@
     {
       "datasource": {
         "type": "grafana-doom-datasource",
-        "uid": "ae75DpL7k"
+        "uid": "datasource-id"
       },
       "fieldConfig": {
         "defaults": {
@@ -4074,31 +4063,29 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 2,
-        "x": 2,
-        "y": 10
+        "w": 3,
+        "x": 3,
+        "y": 14
       },
-      "id": 6,
+      "id": 7,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.0-pre",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
             "type": "grafana-doom-datasource",
-            "uid": "ae75DpL7k"
+            "uid": "datasource-id"
           },
           "halfResolution": false,
           "queryType": "armor",
@@ -4111,7 +4098,7 @@
     {
       "datasource": {
         "type": "grafana-doom-datasource",
-        "uid": "ae75DpL7k"
+        "uid": "datasource-id"
       },
       "fieldConfig": {
         "defaults": {
@@ -4123,8 +4110,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-yellow",
+                "color": "dark-red",
                 "value": null
+              },
+              {
+                "color": "dark-yellow",
+                "value": 20
               }
             ]
           },
@@ -4134,32 +4125,29 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 2,
-        "x": 4,
-        "y": 10
+        "w": 3,
+        "x": 6,
+        "y": 14
       },
-      "id": 5,
+      "id": 8,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
-        "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.5.0-pre",
+      "pluginVersion": "8.4.5",
       "targets": [
         {
           "datasource": {
             "type": "grafana-doom-datasource",
-            "uid": "ae75DpL7k"
+            "uid": "datasource-id"
           },
           "halfResolution": false,
           "queryType": "ammo",
@@ -4171,7 +4159,7 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 36,
+  "schemaVersion": 35,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -4183,8 +4171,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "doom (full rez)",
-  "uid": "EOeBQyL7z",
-  "version": 13,
+  "title": "Doom (half resolution)",
+  "uid": "ePolu9Lnk",
+  "version": 2,
   "weekStart": ""
 }
