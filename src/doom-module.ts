@@ -1,5 +1,5 @@
 // @ts-ignore
-import { init } from './websockets-doom'
+import { init } from './websockets-doom';
 
 var commonArgs = [
   '-iwad',
@@ -10,7 +10,7 @@ var commonArgs = [
   '-config',
   'default.cfg',
   '-servername',
-  'doomflare'
+  'doomflare',
 ];
 
 export function createModule() {
@@ -20,22 +20,37 @@ export function createModule() {
     },
     noInitialRun: true,
     preRun: () => {
-      Module.FS.createPreloadedFile('', 'doom1.wad', '/public/plugins/grafana-doom-datasource/img/doom1.wad', true, true);
-      Module.FS.createPreloadedFile('', 'default.cfg', '/public/plugins/grafana-doom-datasource/img/default.cfg', true, true);
+      Module.FS.createPreloadedFile(
+        '',
+        'doom1.wad',
+        '/public/plugins/grafana-doom-datasource/img/doom1.wad',
+        true,
+        true
+      );
+      Module.FS.createPreloadedFile(
+        '',
+        'default.cfg',
+        '/public/plugins/grafana-doom-datasource/img/default.cfg',
+        true,
+        true
+      );
     },
     printErr: function (text: string) {
-      if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+      if (arguments.length > 1) {
+        text = Array.prototype.slice.call(arguments).join(' ');
+      }
+
       console.error(text);
     },
     canvas: (function () {
-      var canvas = document.createElement('canvas')
-      canvas.id = "canvas"
-      document.body.append(canvas)
-      canvas.style.display = 'none'
-      canvas.width = 320
-      canvas.height = 200
-      canvas.style.width = '320px'
-      canvas.style.height = '200px'
+      var canvas = document.createElement('canvas');
+      canvas.id = 'canvas';
+      document.body.append(canvas);
+      canvas.style.display = 'none';
+      canvas.width = 320;
+      canvas.height = 200;
+      canvas.style.width = '320px';
+      canvas.style.height = '200px';
       canvas.addEventListener(
         'webglcontextlost',
         function (e) {
@@ -62,9 +77,9 @@ export function createModule() {
       );
     },
     startDoom: function () {
-      init(Module)
-      Module.run()
-    }
+      init(Module);
+      Module.run();
+    },
   };
 
   return Module;

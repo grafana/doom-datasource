@@ -9,7 +9,7 @@ import {
   dateTime,
   FieldType,
   LoadingState,
-  toDataFrame
+  toDataFrame,
 } from '@grafana/data';
 
 import { palette } from './palette';
@@ -23,16 +23,16 @@ const WIDTH_PX = 320;
 const HEIGHT_PX = 200;
 
 function rgbaKey(r: number, g: number, b: number): number {
-  return r * 1000000 + g * 1000 + b
+  return r * 1000000 + g * 1000 + b;
 }
 
 interface RenderContext {
-  subscriber: Subscriber<DataQueryResponse>
-  query: MyQuery
-  options: DataQueryRequest<MyQuery>
-  twindow: number
-  timeOffset: number,
-  rangeStep: number
+  subscriber: Subscriber<DataQueryResponse>;
+  query: MyQuery;
+  options: DataQueryRequest<MyQuery>;
+  twindow: number;
+  timeOffset: number;
+  rangeStep: number;
 }
 
 // sRGB color differnce with redmean smoothing
@@ -43,52 +43,57 @@ function colorDistance(r: number, g: number, b: number, c2: number[]) {
   const deltaB = b - c2[2];
   const redmean = (r + c2[0]) / 2;
   return Math.sqrt(
-    (2 + (redmean/256)) * Math.pow(deltaR, 2) +
-    4 * Math.pow(deltaG, 2) +
-    (2 + ((255 - redmean)/256)) * Math.pow(deltaB, 2)
+    (2 + redmean / 256) * Math.pow(deltaR, 2) +
+      4 * Math.pow(deltaG, 2) +
+      (2 + (255 - redmean) / 256) * Math.pow(deltaB, 2)
   );
 }
 
-type Metrics = Record<Metric, number>
-type MetricsSubscriberFn = (metrics: Metrics) => void
+type Metrics = Record<Metric, number>;
+type MetricsSubscriberFn = (metrics: Metrics) => void;
 export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
-
   renderContext: RenderContext | null = null;
 
-  colorCache: Record<number, number> = {}
+  colorCache: Record<number, number> = {};
 
-  intervalId: any
+  intervalId: any;
 
   pixelsCurrent: Uint8Array | null = null;
-  
-  metricsSubscribers: Array<MetricsSubscriberFn>
 
+  metricsSubscribers: MetricsSubscriberFn[];
 
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
     super(instanceSettings);
     this.metricsSubscribers = [];
 
-    (window as any).doStuff = (health: number, armor: number, armorType: number, ammo: number, ammoMax: number, weapon: number) => {
+    (window as any).doStuff = (
+      health: number,
+      armor: number,
+      armorType: number,
+      ammo: number,
+      ammoMax: number,
+      weapon: number
+    ) => {
       const metrics: Metrics = {
         [Metric.health]: health,
         [Metric.ammo]: ammo,
         [Metric.ammoMax]: ammoMax,
         [Metric.armor]: armor,
         [Metric.armorType]: armorType,
-        [Metric.weapon]: weapon
-      }
-      this.metricsSubscribers.forEach(fn => fn(metrics))
+        [Metric.weapon]: weapon,
+      };
+      this.metricsSubscribers.forEach((fn) => fn(metrics));
     };
   }
 
   subscribeToMetrics(fn: MetricsSubscriberFn) {
-    this.metricsSubscribers.push(fn)
+    this.metricsSubscribers.push(fn);
   }
 
   unsubscribeToMetrics(fn: MetricsSubscriberFn) {
-    this.metricsSubscribers = this.metricsSubscribers.filter(f => f !== fn)
+    this.metricsSubscribers = this.metricsSubscribers.filter((f) => f !== fn);
   }
-  
+
   getColorIndex(r: number, g: number, b: number) {
     const key = rgbaKey(r, g, b);
     if (this.colorCache[key] !== undefined) {
@@ -96,13 +101,15 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     }
 
     // Color matching. Second pass with colordiff
-    let min = Infinity, di, minColor = 0;
+    let min = Infinity,
+      di,
+      minColor = 0;
     for (let i = 0; i < palette.length; i++) {
       di = colorDistance(r, g, b, palette[i]);
       if (di < min) {
         min = di;
         minColor = i;
-      };
+      }
     }
 
     this.colorCache[key] = minColor;
@@ -115,61 +122,71 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       const now = dateTime().valueOf() - renderContext.timeOffset;
       const start = now - this.renderContext.twindow;
 
-      const colorsUsed: Record<number, boolean> = {}
+      const colorsUsed: Record<number, boolean> = {};
 
       let valuesLen = 0;
 
       const heightPx = renderContext.query.halfResolution ? HEIGHT_PX / 2 : HEIGHT_PX;
-      const widthPx = renderContext.query.halfResolution ? WIDTH_PX / 2: WIDTH_PX;
+      const widthPx = renderContext.query.halfResolution ? WIDTH_PX / 2 : WIDTH_PX;
       const offsetMultiplier = renderContext.query.halfResolution ? 2 * scale : scale;
 
       const columns: Array<{
-        tLen: number,
-        color2H: number[][]
-      }> = Array(widthPx)
+        tLen: number;
+        color2H: number[][];
+      }> = Array(widthPx);
       for (let x = 0; x < widthPx; x++) {
         let tLen = 1;
         const color2H: number[][] = Array(256);
         for (let y = 0; y < heightPx; y++) {
-          const offst = ((vflip ? y * offsetMultiplier : ((HEIGHT_PX - 1) * scale - y * offsetMultiplier - 1 )) * (WIDTH_PX * scale) + x * offsetMultiplier) * 4 ;
-          const colorIdx = this.getColorIndex(imgData[offst], imgData[offst + 1], imgData[offst + 2])
-          colorsUsed[colorIdx] = true
+          const offst =
+            ((vflip ? y * offsetMultiplier : (HEIGHT_PX - 1) * scale - y * offsetMultiplier - 1) * (WIDTH_PX * scale) +
+              x * offsetMultiplier) *
+            4;
+          const colorIdx = this.getColorIndex(imgData[offst], imgData[offst + 1], imgData[offst + 2]);
+          colorsUsed[colorIdx] = true;
           if (!color2H[colorIdx]) {
-            color2H[colorIdx] = [y]
+            color2H[colorIdx] = [y];
           } else {
-            color2H[colorIdx].push(y)
-            tLen = Math.max(tLen, color2H[colorIdx].length)
+            color2H[colorIdx].push(y);
+            tLen = Math.max(tLen, color2H[colorIdx].length);
           }
         }
-        columns[x] = { tLen, color2H }
+        columns[x] = { tLen, color2H };
         valuesLen += tLen;
       }
 
-      const timeValues = columns.flatMap(({ tLen }, i) => Array.from(Array(tLen)).map((_) => start + i * renderContext.rangeStep * (renderContext.query.halfResolution ? 2 : 1)))
-      const fields: any = [
-        { name: 'Time', type: FieldType.time, values: timeValues },
-      ]
+      const timeValues = columns.flatMap(({ tLen }, i) =>
+        Array.from(Array(tLen)).map(
+          (_) => start + i * renderContext.rangeStep * (renderContext.query.halfResolution ? 2 : 1)
+        )
+      );
+      const fields: any = [{ name: 'Time', type: FieldType.time, values: timeValues }];
       fields.length = 257;
       for (let colorIndex = 0; colorIndex < 256; colorIndex++) {
-        const values: number[] = Array(valuesLen)
+        const values: number[] = Array(valuesLen);
         let i = 0;
-        for (let {tLen, color2H} of columns) {
+        for (let { tLen, color2H } of columns) {
           if (color2H[colorIndex]) {
             color2H[colorIndex].forEach((c, ii) => {
-              values[i + ii] = c
-            })
+              values[i + ii] = c;
+            });
           }
-          i+= tLen;
+          i += tLen;
         }
 
-        fields[colorIndex + 1] = ({ name: 'Value', type: FieldType.number, values, labels: { color: String(colorIndex) }})
+        fields[colorIndex + 1] = {
+          name: 'Value',
+          type: FieldType.number,
+          values,
+          labels: { color: String(colorIndex) },
+        };
       }
 
       const frame = toDataFrame({
         name: 'screen',
         fields,
       });
-      frame.refId = renderContext.query.refId
+      frame.refId = renderContext.query.refId;
 
       renderContext.subscriber.next({
         data: [frame],
@@ -179,18 +196,17 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     }
   }
 
-  renderWebGLContext(ctx: WebGLRenderingContext, scale=1) {
-    if (!this.pixelsCurrent ) {
-      this.pixelsCurrent = new Uint8Array(WIDTH_PX* scale * HEIGHT_PX * scale * 4 )
+  renderWebGLContext(ctx: WebGLRenderingContext, scale = 1) {
+    if (!this.pixelsCurrent) {
+      this.pixelsCurrent = new Uint8Array(WIDTH_PX * scale * HEIGHT_PX * scale * 4);
     }
     ctx.readPixels(0, 0, WIDTH_PX * scale, HEIGHT_PX * scale, ctx.RGBA, ctx.UNSIGNED_BYTE, this.pixelsCurrent);
-    this.renderImgData(this.pixelsCurrent, true, scale)
+    this.renderImgData(this.pixelsCurrent, true, scale);
   }
 
   renderCanvas2DContext(ctx: CanvasRenderingContext2D, vflip = false) {
-    this.renderImgData(ctx.getImageData(0, 0, WIDTH_PX, HEIGHT_PX).data, vflip)
+    this.renderImgData(ctx.getImageData(0, 0, WIDTH_PX, HEIGHT_PX).data, vflip);
   }
-
 
   getImg2DContext(src: string): Promise<CanvasRenderingContext2D | null> {
     return new Promise((resolve) => {
@@ -198,48 +214,48 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       canvas.width = WIDTH_PX;
       canvas.height = HEIGHT_PX;
       const ctx = canvas.getContext('2d');
-      const img = new Image()
+      const img = new Image();
       if (ctx) {
         img.src = src;
         img.onload = () => {
-          ctx.drawImage(img,0,0);
-          resolve(ctx)
-        }
-        img.onabort = () => resolve(null)
-        img.onerror = () => resolve(null)
+          ctx.drawImage(img, 0, 0);
+          resolve(ctx);
+        };
+        img.onabort = () => resolve(null);
+        img.onerror = () => resolve(null);
       } else {
-        resolve(null)
+        resolve(null);
       }
-    })
+    });
   }
   //@ts-ignore
-  query(options: DataQueryRequest<MyQuery>): Observable<DataQueryResponse> |  Promise<DataQueryResponse> {
-    const streams = options.targets.map(target => {
+  query(options: DataQueryRequest<MyQuery>): Observable<DataQueryResponse> | Promise<DataQueryResponse> {
+    const streams = options.targets.map((target) => {
       if (target.queryType === QueryType.Screen) {
-        return this.screenQuery(target, options)
+        return this.screenQuery(target, options);
       }
-      const metric: Metric = (queryTypeToMetric as any)[target.queryType]
+      const metric: Metric = (queryTypeToMetric as any)[target.queryType];
       if (metric) {
-        return this.metricQuery(metric, target, options)
+        return this.metricQuery(metric, target, options);
       }
-      return new Observable<DataQueryResponse>(() => {})
+      return new Observable<DataQueryResponse>(() => {});
     });
     //@ts-ignore
     return merge(...streams);
   }
 
   metricQuery(metric: Metric, target: MyQuery, options: DataQueryRequest<MyQuery>) {
-    return new Observable<DataQueryResponse>(subscriber => {
+    return new Observable<DataQueryResponse>((subscriber) => {
       const frame = new CircularDataFrame({
         append: 'tail',
         capacity: 1000,
       });
-      
+
       frame.refId = target.refId;
       frame.addField({ name: 'time', type: FieldType.time });
       frame.addField({ name: 'value', type: FieldType.number });
 
-      const subfn: MetricsSubscriberFn = metrics => {
+      const subfn: MetricsSubscriberFn = (metrics) => {
         frame.add({ time: Date.now(), value: metrics[metric] });
 
         subscriber.next({
@@ -247,12 +263,12 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
           key: target.refId,
           state: LoadingState.Streaming,
         });
-      }
-      this.subscribeToMetrics(subfn)
+      };
+      this.subscribeToMetrics(subfn);
       return () => {
-        this.unsubscribeToMetrics(subfn)
-      }
-    })
+        this.unsubscribeToMetrics(subfn);
+      };
+    });
   }
 
   screenQuery(target: MyQuery, options: DataQueryRequest<MyQuery>) {
@@ -264,7 +280,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     const diff = to - from;
     const rangeStep = (to - from) / WIDTH_PX;
 
-    return new Observable<DataQueryResponse>(subscriber => {
+    return new Observable<DataQueryResponse>((subscriber) => {
       this.renderContext = {
         query: query,
         options: options,
@@ -272,23 +288,23 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         twindow: diff,
         timeOffset,
         rangeStep,
-      }
-      const module = createModule()
+      };
+      const module = createModule();
       module.startDoom();
       const gl = (module.canvas as HTMLCanvasElement).getContext('webgl', { preserveDrawingBuffer: true });
       if (gl) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         module.onUpdate = () => {
-          this.renderWebGLContext(gl)
-        }
+          this.renderWebGLContext(gl);
+        };
       }
 
       return () => {
         this.renderContext = null;
         try {
-          module.exit(0)
+          module.exit(0);
         } catch (e) {}
-        module.canvas.remove()
+        module.canvas.remove();
       };
     });
   }

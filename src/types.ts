@@ -1,8 +1,8 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
 export interface MyQuery extends DataQuery {
-  queryType: QueryType
-  halfResolution: boolean
+  queryType: QueryType;
+  halfResolution: boolean;
 }
 
 export enum Metric {
@@ -13,7 +13,6 @@ export enum Metric {
   ammoMax = 'ammoMax',
   weapon = 'weapon',
 }
-
 
 export enum QueryType {
   None = '',
@@ -32,13 +31,12 @@ export const queryTypeToMetric = {
   [QueryType.health]: Metric.health,
   [QueryType.armor]: Metric.armor,
   [QueryType.armorType]: Metric.armorType,
-  [QueryType.weapon]: Metric.weapon
-}
-
+  [QueryType.weapon]: Metric.weapon,
+};
 
 export const defaultQuery: Partial<MyQuery> = {
   queryType: QueryType.None,
-  halfResolution: false
+  halfResolution: false,
 };
 
 /**

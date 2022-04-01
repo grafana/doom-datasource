@@ -43,8 +43,6 @@ export class ConfigEditor extends PureComponent<Props, State> {
   };
 
   render() {
-    return (
-      <div className="gf-form-group">DOOM!</div>
-    );
+    return <div className="gf-form-group">DOOM!</div>;
   }
 }

@@ -1,6 +1,6 @@
 import defaults from 'lodash/defaults';
 
-import React, {  PureComponent } from 'react';
+import React, { PureComponent } from 'react';
 import { InlineFieldRow, InlineSwitch, InlineField, Select } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
@@ -18,7 +18,7 @@ const queryTypes: Array<SelectableValue<QueryType>> = [
   {
     label: 'Screen',
     value: QueryType.Screen,
-    description: 'Time series for rendering screen using time series panel'
+    description: 'Time series for rendering screen using time series panel',
   },
   {
     label: 'Health',
@@ -53,40 +53,46 @@ const queryTypes: Array<SelectableValue<QueryType>> = [
 ];
 
 export class QueryEditor extends PureComponent<Props> {
-
   onQueryTypeChange = (sel: SelectableValue<QueryType>) => {
     const { onChange, query, onRunQuery } = this.props;
     onChange({ ...query, queryType: sel.value! });
-    onRunQuery() 
-  }
+    onRunQuery();
+  };
 
   onHalfRezChange = (evt: React.FormEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = this.props;
-    onChange({...query, halfResolution: evt!.currentTarget.checked})
-    onRunQuery() 
-  }
-  
+    onChange({ ...query, halfResolution: evt!.currentTarget.checked });
+    onRunQuery();
+  };
 
   render() {
     const query = defaults(this.props.query, defaultQuery);
-    const { halfResolution} = query;
-    
+    const { halfResolution } = query;
+
     return (
       <div>
         <InlineFieldRow>
-            <InlineField label="Query type" grow={true} labelWidth={12}>
-              <Select
-                menuShouldPortal
-                options={queryTypes}
-                value={queryTypes.find((v) => v.value === query.queryType) || queryTypes[0]}
-                onChange={this.onQueryTypeChange}
-              />
-            </InlineField>
+          <InlineField label="Query type" grow={true} labelWidth={12}>
+            <Select
+              menuShouldPortal
+              options={queryTypes}
+              value={queryTypes.find((v) => v.value === query.queryType) || queryTypes[0]}
+              onChange={this.onQueryTypeChange}
+            />
+          </InlineField>
+        </InlineFieldRow>
+        {query.queryType === QueryType.Screen && (
+          <InlineFieldRow>
+            <InlineSwitch
+              showLabel={true}
+              value={halfResolution}
+              label="Half resolution"
+              checked={halfResolution}
+              onChange={this.onHalfRezChange}
+            />
           </InlineFieldRow>
-          {query.queryType === QueryType.Screen && (<InlineFieldRow>
-            <InlineSwitch showLabel={true} value={halfResolution} label="Half resolution" checked={halfResolution} onChange={this.onHalfRezChange} />
-          </InlineFieldRow>)}
-        </div>
+        )}
+      </div>
     );
   }
 }

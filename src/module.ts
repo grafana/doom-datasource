@@ -6,6 +6,6 @@ import { MyQuery, MyDataSourceOptions } from './types';
 
 //@ts-ignore
 export const plugin = new DataSourcePlugin<DataSource, MyQuery, MyDataSourceOptions>(DataSource)
-//@ts-ignore
+  //@ts-ignore
   .setConfigEditor(ConfigEditor)
   .setQueryEditor(QueryEditor);
