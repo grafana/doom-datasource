@@ -899,49 +899,43 @@ void G_Ticker(void)
     }
 
     if (playeringame[0]) {
-        char str1[1000];
-        ammotype_t str2;
-
-        switch (players[0].readyweapon) {
-            case wp_fist:
-            case wp_chainsaw:
-                str2 = am_noammo;
-            break;
-
-            case wp_pistol:
-            case wp_chaingun:
-                str2 = am_clip;
-            break;
-
-            case wp_shotgun:
-            case wp_supershotgun:
-                str2 = am_shell;
-            break;
-
-            case wp_missile:
-                str2 = am_misl;
-            break;
-
-            case wp_plasma:
-            case wp_bfg:
-                str2 = am_cell;
-            break;
-
-            default:
-                str2 = NUMAMMO;
-        }
+        char callableMethod[1000];
 
         sprintf(
-            str1,
-            "doStuff(%d, %d, %d, %d, %d, %d);",
+            callableMethod,
+            "doStuff({ health: %d, armor: { count: %d, type: %d }, ammo: { no: { current: Infinity, max: Infinity }, clip: { current: %d, max: %d }, shell: { current: %d, max: %d }, missiles: { current: %d, max: %d }, cell: { current: %d, max: %d } }, weapons: { fist: { available: %s, current: %s, ammo: 'no' }, chainsaw: { available: %s, current: %s, ammo: 'no' }, pistol: { available: %s, current: %s, ammo: 'clip' }, chaingun: { available: %s, current: %s, ammo: 'clip' }, shotgun: { available: %s, current: %s, ammo: 'shell' }, supershotgun: { available: %s, current: %s, ammo: 'shell' }, missile: { available: %s, current: %s, ammo: 'missiles' }, plasma: { available: %s, current: %s, ammo: 'cell' }, bfg: { available: %s, current: %s, ammo: 'cell' } }, kills: %d });",
             players[0].health,
             players[0].armorpoints,
             players[0].armortype,
-            players[0].ammo[str2],
-            players[0].maxammo[str2],
-            players[0].readyweapon
+            players[0].ammo[am_clip],
+            players[0].maxammo[am_clip],
+            players[0].ammo[am_shell],
+            players[0].maxammo[am_shell],
+            players[0].ammo[am_misl],
+            players[0].maxammo[am_misl],
+            players[0].ammo[am_cell],
+            players[0].maxammo[am_cell],
+            players[0].weaponowned[wp_fist] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_fist ? "true" : "false",
+            players[0].weaponowned[wp_chainsaw] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_chainsaw ? "true" : "false",
+            players[0].weaponowned[wp_pistol] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_pistol ? "true" : "false",
+            players[0].weaponowned[wp_chaingun] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_chaingun ? "true" : "false",
+            players[0].weaponowned[wp_shotgun] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_shotgun ? "true" : "false",
+            players[0].weaponowned[wp_supershotgun] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_supershotgun ? "true" : "false",
+            players[0].weaponowned[wp_missile] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_missile ? "true" : "false",
+            players[0].weaponowned[wp_plasma] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_plasma ? "true" : "false",
+            players[0].weaponowned[wp_bfg] == 1 ? "true" : "false",
+            players[0].readyweapon == wp_bfg ? "true" : "false",
+            players[0].killcount
         );
-        emscripten_run_script(str1);
+        emscripten_run_script(callableMethod);
     }
 }
 
