@@ -1,9 +1,10 @@
 {
   "name": "grafana-doom-datasource",
-  "version": "main-a799153",
+  "version": "main-b15b305",
   "description": "Play Doom via Grafana dashboard, because why not",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
+    "lint": "grafana-toolkit plugin:lint",
     "test": "grafana-toolkit plugin:test",
     "dev": "grafana-toolkit plugin:dev",
     "watch": "grafana-toolkit plugin:dev --watch",

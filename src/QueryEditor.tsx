@@ -26,14 +26,14 @@ const queryTypes: Array<SelectableValue<QueryType>> = [
     description: 'Health',
   },
   {
-    label: 'Ammo',
+    label: 'Current weapon ammo',
     value: QueryType.ammo,
     description: 'Ammo',
   },
   {
-    label: 'Ammo Max',
-    value: QueryType.ammoMax,
-    description: 'Ammo max',
+    label: 'Ammo per weapon',
+    value: QueryType.ammoPerWeapon,
+    description: 'Ammo per weapon',
   },
   {
     label: 'Armor',
@@ -41,14 +41,19 @@ const queryTypes: Array<SelectableValue<QueryType>> = [
     description: 'Armor',
   },
   {
-    label: 'Armor type',
-    value: QueryType.armorType,
-    description: 'Armor type',
-  },
-  {
     label: 'Selected Weapon',
     value: QueryType.weapon,
-    description: 'Selected weapon index',
+    description: 'Selected weapon',
+  },
+  {
+    label: 'Kills',
+    value: QueryType.kills,
+    description: 'Kills',
+  },
+  {
+    label: 'FPS',
+    value: QueryType.fps,
+    description: 'Frames Per Second',
   },
 ];
 

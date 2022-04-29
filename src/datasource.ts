@@ -16,7 +16,7 @@ import { palette } from './palette';
 
 import { Observable, merge, Subscriber } from 'rxjs';
 
-import { MyQuery, MyDataSourceOptions, defaultQuery, QueryType, Metric, queryTypeToMetric } from './types';
+import { MyQuery, MyDataSourceOptions, defaultQuery, QueryType, MetricPayload, Metric, queryTypeToMetric, ammoTypes } from './types';
 import { createModule } from 'doom-module';
 
 const WIDTH_PX = 320;
@@ -49,8 +49,7 @@ function colorDistance(r: number, g: number, b: number, c2: number[]) {
   );
 }
 
-type Metrics = Record<Metric, number>;
-type MetricsSubscriberFn = (metrics: Metrics) => void;
+type MetricsSubscriberFn = (metrics: MetricPayload) => void;
 export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   renderContext: RenderContext | null = null;
 
@@ -62,26 +61,14 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
   metricsSubscribers: MetricsSubscriberFn[];
 
+  prevRenderMs: number = 0
+  fps: number = 0
+
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
     super(instanceSettings);
     this.metricsSubscribers = [];
 
-    (window as any).doStuff = (
-      health: number,
-      armor: number,
-      armorType: number,
-      ammo: number,
-      ammoMax: number,
-      weapon: number
-    ) => {
-      const metrics: Metrics = {
-        [Metric.health]: health,
-        [Metric.ammo]: ammo,
-        [Metric.ammoMax]: ammoMax,
-        [Metric.armor]: armor,
-        [Metric.armorType]: armorType,
-        [Metric.weapon]: weapon,
-      };
+    (window as any).doStuff = (metrics: MetricPayload) => {
       this.metricsSubscribers.forEach((fn) => fn(metrics));
     };
   }
@@ -202,6 +189,12 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     }
     ctx.readPixels(0, 0, WIDTH_PX * scale, HEIGHT_PX * scale, ctx.RGBA, ctx.UNSIGNED_BYTE, this.pixelsCurrent);
     this.renderImgData(this.pixelsCurrent, true, scale);
+
+    const now = dateTime().valueOf()
+    if (this.prevRenderMs) {
+      this.fps = Math.floor(1000 / (now - this.prevRenderMs))
+    }
+    this.prevRenderMs = now
   }
 
   renderCanvas2DContext(ctx: CanvasRenderingContext2D, vflip = false) {
@@ -253,10 +246,39 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
 
       frame.refId = target.refId;
       frame.addField({ name: 'time', type: FieldType.time });
-      frame.addField({ name: 'value', type: FieldType.number });
+      if (metric === Metric.ammo|| metric === Metric.health || metric === Metric.kills || metric === Metric.armor || metric === Metric.fps) {
+        frame.addField({ name: 'value', type: FieldType.number });
+      } else if (metric === 'weapon') {
+        frame.addField({ name: 'value', type: FieldType.string });
+      } else if (metric === Metric.ammoPerWeapon) {
+        ammoTypes.forEach(ammoType => {
+          frame.addField({ name: ammoType, type: FieldType.number})
+        })
+      }
 
       const subfn: MetricsSubscriberFn = (metrics) => {
-        frame.add({ time: Date.now(), value: metrics[metric] });
+
+        const frameval: Record<string, any> = { time: Date.now() };
+
+        const currentWeapon = Object.entries(metrics.weapons).find(([key, val]) => val.current);
+
+        if ( metric === Metric.health || metric === Metric.kills) {
+          frameval.value = metrics[metric]
+        } else if (metric === Metric.ammo) {
+          frameval.value = currentWeapon ? metrics.ammo[currentWeapon[1].ammo].current : 0;
+        } else if (metric === Metric.armor) {
+          frameval.value = metrics.armor.count
+        } else if (metric === Metric.weapon) {
+          frameval.value = Object.entries(metrics.weapons).find(([key, val]) => val.current)?.[0] ?? '-'
+        } else if (metric === Metric.ammoPerWeapon) {
+          ammoTypes.forEach(ammoType => {
+            frameval[ammoType] = metrics.ammo[ammoType].current
+          })
+        } else if (metric === Metric.fps) {
+          frameval.value = this.fps
+        }
+
+        frame.add(frameval);
 
         subscriber.next({
           data: [frame],
@@ -274,9 +296,10 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   screenQuery(target: MyQuery, options: DataQueryRequest<MyQuery>) {
     const query = defaults(target, defaultQuery);
 
+    const now = dateTime().valueOf();
     const from = options.range.from.valueOf();
     const to = options.range.to.valueOf();
-    const timeOffset = dateTime().valueOf() - to;
+    const timeOffset = now - to;
     const diff = to - from;
     const rangeStep = (to - from) / WIDTH_PX;
 
@@ -302,7 +325,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
       return () => {
         this.renderContext = null;
         try {
-          module.exit(0);
+          module.exit(0, undefined, true);
         } catch (e) {}
         module.canvas.remove();
       };
